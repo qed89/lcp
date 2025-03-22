@@ -1,0 +1,6 @@
+# Игнорировать папки
+.vscode/
+go-data-service/
+lcp/
+docs/.obsidian/
+docs/prompts/

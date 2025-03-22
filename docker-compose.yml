@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  web-app:
+    image: my-web-app
+    build:
+      context: .  # Путь к Java-проекту
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"  # Порт для Wildfly
+      - "9990:9990"  # Порт для администрирования Wildfly
+    depends_on:
+      postgres:
+        condition: service_healthy
+      go-data-service:
+        condition: service_started  # Ожидаем запуска микросервиса
+    environment:
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/lcp
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - MICROSERVICE_URL=http://go-data-service:8081  # Ссылка на микросервис
+    volumes:
+      - maven-repo:/root/.m2  # Кэшируем Maven-зависимости
+    networks:
+      - my-network
+
+  go-data-service:
+    image: go-data-service
+    build:
+      context: ../go-data-service  # Путь к Go-проекту
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"  # Порт для микросервиса
+    depends_on:
+      postgres:
+        condition: service_healthy  # Ожидаем готовности PostgreSQL
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lcp?sslmode=disable
+    networks:
+      - my-network
+
+  postgres:
+    image: postgres:16.6
+    environment:
+      POSTGRES_DB: lcp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"  # Порт для PostgreSQL
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lcp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - my-network
+
+volumes:
+  postgres-data:  # Volume для данных PostgreSQL
+  maven-repo:     # Volume для кэширования Maven
+
+networks:
+  my-network:     # Общая сеть для всех сервисов
