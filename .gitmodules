@@ -1,3 +1,6 @@
 [submodule "lcp-main"]
 	path = lcp-main
 	url = ../lcp-main
+[submodule "go-data-service"]
+	path = go-data-service
+	url = ../go-data-service
